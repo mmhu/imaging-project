@@ -17,9 +17,9 @@ grayscale <- function(input.img) {
 
 gray.list <- lapply(jpeg.list, grayscale)
 
-remove_bg <- function(input.img, input.seg) {
+remove.bg <- function(input.img, input.seg) {
   is.na(input.seg) <- input.seg == 0
   lesion.image <- input.img * input.seg
 }
 
-lesion.list <- lapply(1:40, function(i) remove_bg(gray.list[[i]], png.list[[i]]))
+lesion.list <- lapply(1:40, function(i) remove.bg(gray.list[[i]], png.list[[i]]))
