@@ -34,5 +34,5 @@ glrlm.feat.list <- lapply(glrlm.list, calc_features)
 glszm.feat.list <- lapply(glszm.list, calc_features)
 # mglszm.feat.list <- lapply(mglszm.list, calc_features)
 
-features <- data_frame(my.jpeg, glcm.feat.list, glrlm.feat.list, glszm.feat.list)
-write.csv(features, file="1-30.csv")
+features <- data.frame(my.jpeg, glcm.feat.list, glrlm.feat.list, glszm.feat.list)
+write.csv(features, file="features.csv")
