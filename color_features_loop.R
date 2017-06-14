@@ -62,7 +62,10 @@ sd_lesions <- lapply(lesions_normal, function(x) color.operation(x, sd))
 sd_lesions_df <- data.frame(matrix(unlist(sd_lesions), byrow=TRUE, nrow=length(sd_lesions)))
 
 features <- bind_cols(data_frame(my.jpeg), mean_lesions_df, sd_lesions_df)
-colnames(features) <- c("image", "mean_r", "mean_b", "mean_g", "sd_r", "sd_b", "sd_g")
+
+##append truth
+training_set_truth = read.csv("~/Documents/Mine New/bdsi/imaging/training_set/training_set_truth.csv", head=F)
+features <- mutate(features, training_set_truth[467:700,3])
+colnames(features) <- c("image", "mean_r", "mean_b", "mean_g", "sd_r", "sd_b", "sd_g", "truth")
 
 write.table(features, file = "colors.csv", sep = ",",row.names=FALSE, append = FALSE)
-
