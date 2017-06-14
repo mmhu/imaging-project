@@ -42,3 +42,12 @@ glszm.feat <- data_frame(glszm.feat.list) %>% unnest
 features <- bind_cols(data_frame(my.jpeg), glcm.feat, glrlm.feat, glszm.feat)
 
 write.table(features, file = "features.csv", sep = ",", col.names = FALSE, row.names = FALSE, append = TRUE)
+
+# First Order Features
+feat <- lapply(1:30, function(i) calc_features(lesion.list[[i]])) %>% unlist
+feat <- matrix(feat, 30, 13, byrow = TRUE)
+colnames(feat) <- c("calc_energy", "calc_entropy", "calc_kurtosis", "calc_meanDeviation",
+                    "calc_skewness", "calc_uniformity", "calc_mean", "calc_median",
+                    "calc_max", "calc_min", "calc_variance", "calc_RMS", "calc_sd")
+feat <- as.data.frame(feat)
+write.table(features, file = "firstorder.csv", sep = ",", col.names = FALSE, row.names = FALSE, append = TRUE)
