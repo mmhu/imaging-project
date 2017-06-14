@@ -1,7 +1,9 @@
 library(dplyr)
 library(jpeg)
 library(png)
-library(radiomics)
+library(plotly)
+library(devtools)
+library(ggbiplot)
 setwd("~/Documents/Mine New/bdsi/imaging/training_set")
 
 jpegs <- list.files(pattern = ".jpg")
@@ -14,8 +16,6 @@ png.list <- lapply(my.png, readPNG, native = FALSE)
 
 ##copy of segmentation image for lesion only
 lesions <- png.list
-dim(lesions[[1]])
-lesions[[1]][1:3,1:3]
 
 ##remove background skin from image
 remove.bg <- function(lesion, jpeg){
@@ -62,6 +62,7 @@ sd_lesions <- lapply(lesions_normal, function(x) color.operation(x, sd))
 sd_lesions_df <- data.frame(matrix(unlist(sd_lesions), byrow=TRUE, nrow=length(sd_lesions)))
 
 features <- bind_cols(data_frame(my.jpeg), mean_lesions_df, sd_lesions_df)
+colnames(features) <- c("image", "mean_r", "mean_b", "mean_g", "sd_r", "sd_b", "sd_g")
 
 ##append truth
 training_set_truth = read.csv("~/Documents/Mine New/bdsi/imaging/training_set/training_set_truth.csv", head=F)
@@ -69,3 +70,23 @@ features <- mutate(features, training_set_truth[467:700,3])
 colnames(features) <- c("image", "mean_r", "mean_b", "mean_g", "sd_r", "sd_b", "sd_g", "truth")
 
 write.table(features, file = "colors.csv", sep = ",",row.names=FALSE, append = FALSE)
+View(features)
+
+##data visualization
+qqnorm(features$mean_r); qqline(features$mean_r)
+qqnorm(features$mean_b); qqline(features$mean_b)
+qqnorm(features$mean_g); qqline(features$mean_g)
+
+qqnorm(features$sd_r); qqline(features$sd_r)
+qqnorm(features$sd_b); qqline(features$sd_b)
+qqnorm(features$sd_g); qqline(features$sd_g)
+
+plot_ly(features, x = ~mean_r, y= ~mean_b, z=~mean_g, color = ~truth, colors = c('#0C4B8E', '#BF382A'))
+plot_ly(features, x = ~sd_r, y= ~sd_b, z=~sd_g, color = ~truth, colors = c('#0C4B8E', '#BF382A'))
+
+features %>% group_by(truth) %>% count()
+
+color.pca=prcomp(~ mean_r + mean_b + mean_g+sd_r+sd_b+sd_g, data = features, scale = TRUE)
+color.pca=prcomp(~ sd_r + sd_b + sd_g, data = features, scale = TRUE)
+ggbiplot(color.pca,group=features$truth, obs.scale = 1, var.scale = 1)	#Biplot
+
