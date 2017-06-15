@@ -34,5 +34,12 @@ glrlm.feat.list <- lapply(glrlm.list, calc_features)
 glszm.feat.list <- lapply(glszm.list, calc_features)
 # mglszm.feat.list <- lapply(mglszm.list, calc_features)
 
-features <- data.frame(my.jpeg, glcm.feat.list, glrlm.feat.list, glszm.feat.list)
-write.csv(features, file="features.csv")
+glcm.matrix <- matrix(unlist(glcm.feat.list),nrow=10,byrow=T)
+glrlm.matrix <- matrix(unlist(glrlm.feat.list),nrow=10,byrow=T)
+glszm.matrix <- matrix(unlist(glszm.feat.list),nrow=10,byrow=T)
+
+features <- cbind(glcm.matrix, glrlm.matrix)
+features <- cbind(features, glszm.matrix)
+features <- cbind(my.jpeg, features)
+
+write.table(features, file="feature_list.csv", sep=",", col.names=FALSE)
