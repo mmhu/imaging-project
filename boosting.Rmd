@@ -1,0 +1,47 @@
+---
+title: "Boosting"
+author: "Miriam Hu"
+date: "June 15, 2017"
+output: html_document
+---
+
+```{r setup, include = FALSE}
+library(knitr)
+  opts_chunk$set(cache = TRUE)
+  opts_knit$set(root.dir = "C:/Users/Mimi/Documents/Research/BDSI/training_set")
+library(devtools)
+library(ggbiplot)
+library(ada)
+library(tidyverse)
+```
+
+```{r load-data, include = FALSE}
+features <- read.csv("features.csv", header = TRUE)
+features <- features[, -8] # get rid of glcm_correlation with all 1 values
+truth <- read.csv("training_set_truth.csv", header = FALSE)
+truth <- truth[, 3]
+truth <- ifelse(truth == "malignant", 1, 0)  # recode "malignant" as 1 and "benign" as 0
+```
+
+```{r pca}
+pca <- prcomp(features, scale = TRUE, center = TRUE)
+pcs <- pca$x[, 1:8]
+```
+
+```{r ada-boost}
+ada.boost <- ada(truth ~ ., data = features, loss = "l", type = "discrete")
+pca.ada.boost <- ada(truth ~ pcs, loss = "l", type = "discrete")
+```
+
+```{r cv}
+pred = rep(0,700)
+AUC = rep(0,100)
+for (j in 1:100) {
+  ss = sample(700, replace = FALSE)
+}
+for (i in seq(1,700, by = 70)) {
+    ada.boost.tmp = ada(truth[-ss[i:(i+69)]] ~ ., data = features[-ss[i:(i+69)],], loss = "l",
+                        type = "discrete")
+    pred[ss[i:(i+69)]] = predict(ada.boost.tmp, newdata = features[ss[i:(i+69)],])
+}
+```
