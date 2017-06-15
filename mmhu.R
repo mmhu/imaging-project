@@ -34,6 +34,17 @@ glrlm.feat.list <- lapply(glrlm.list, calc_features)
 glszm.feat.list <- lapply(glszm.list, calc_features)
 # mglszm.feat.list <- lapply(mglszm.list, calc_features)
 
+<<<<<<< HEAD
+glcm.matrix <- matrix(unlist(glcm.feat.list),nrow=10,byrow=T)
+glrlm.matrix <- matrix(unlist(glrlm.feat.list),nrow=10,byrow=T)
+glszm.matrix <- matrix(unlist(glszm.feat.list),nrow=10,byrow=T)
+
+features <- cbind(glcm.matrix, glrlm.matrix)
+features <- cbind(features, glszm.matrix)
+features <- cbind(my.jpeg, features)
+
+write.table(features, file="feature_list.csv", sep=",", col.names=FALSE)
+=======
 glcm.feat <- data_frame(glcm.feat.list) %>% unnest
 glrlm.feat <- data_frame(glrlm.feat.list) %>% unnest
 glszm.feat <- data_frame(glszm.feat.list) %>% unnest
@@ -51,3 +62,4 @@ colnames(feat) <- c("calc_energy", "calc_entropy", "calc_kurtosis", "calc_meanDe
                     "calc_max", "calc_min", "calc_variance", "calc_RMS", "calc_sd")
 feat <- as.data.frame(feat)
 write.csv(feat, file = "firstorder.csv", row.names = FALSE)
+>>>>>>> cb1a677802f3868364a9b4196b6b4ce00b5eeca2
