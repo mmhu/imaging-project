@@ -1,8 +1,8 @@
 library(EBImage)
 # get features (from resize_images.R)
 setwd("/Users/bensadis/Desktop/BDSI/training_set")
-a = 321 # index of first image to analyze
-n = 50 # number of images to analyze
+a = 1 # index of first image to analyze
+n = 1 # number of images to analyze
 jpegs <- list.files(pattern = ".jpg")
 my.jpeg <- jpegs[a:(a+n-1)]
 pngs <- list.files(pattern = ".png")
@@ -10,25 +10,40 @@ my.png <- pngs[a:(a+n-1)]
 jpeg.list <- lapply(my.jpeg, readImage, native = FALSE)
 png.list <- lapply(my.png, readImage, native = FALSE)
 
-jpeg.list.r <- lapply(jpeg.list, resize, w=64, h=64)
-png.list.r <- lapply(png.list, resize, w=64, h=64)
+jpeg.list.r <- lapply(jpeg.list, resize, w=128, h=128)
+png.list.r <- lapply(png.list, resize, w=128, h=128)
 
 grayscale <- function(img) {
-  gray.img <- Image(img, dim=c(64, 64), colormode = "Grayscale")
+  gray.img <- Image(img, dim=c(128, 128), colormode = "Grayscale")
 }
 gray.list.r <- lapply(jpeg.list.r, grayscale)
 
 remove_bg <- function(input.img, input.seg) {
   lesion.image <- input.img * input.seg
 }
-lesion.list.r <- lapply(1:n, function(i) remove_bg(gray.list.r[[i]], png.list.r[[i]]))
+lesion.list <- lapply(1:n, function(i) remove_bg(gray.list.r[[i]], png.list.r[[i]]))
 
-vector.list <- lapply(lesion.list.r, as.vector)
+rotated.list <- lapply(lesion.list, rotate, 90)
+flipped.list <- lapply(lesion.list, flip)
+flopped.list <- lapply(lesion.list, flop)
 
-features <- vector.list[[1]]
+vector.les.list <- lapply(lesion.list, as.vector)
+vector.rot.list <- lapply(rotated.list, as.vector)
+vector.flip.list <- lapply(flipped.list, as.vector)
+vector.flop.list <- lapply(flopped.list, as.vector)
+
+features <- vector.les.list[[1]]
+features <- rbind(features, vector.rot.list[[1]])
+features <- rbind(features, vector.flip.list[[1]])
+features <- rbind(features, vector.flop.list[[1]])
+
 for (i in 2:(1+n-1)) {
-  features <- rbind(features, vector.list[[i]])
+  features <- rbind(features, vector.les.list[[i]])
+  features <- rbind(features, vector.rot.list[[i]])
+  features <- rbind(features, vector.flip.list[[i]])
+  features <- rbind(features, vector.flop.list[[i]])
 }
+
 
 # write features to csv file
 setwd("/Users/bensadis/Desktop/BDSI")
