@@ -1,0 +1,168 @@
+---
+title: "Boosting"
+author: "Miriam Hu"
+date: "June 15, 2017"
+output: html_document
+---
+
+```{r setup, include = FALSE}
+library(knitr)
+  opts_chunk$set(cache = TRUE)
+  opts_knit$set(root.dir = "C:/Users/Mimi/Documents/Research/BDSI/training_set")
+library(devtools)
+library(ggbiplot)
+library(ada)
+library(randomForest)
+library(e1071)
+library(tidyverse)
+library(mgcv)
+library(gbm)
+```
+
+```{r load-data, include = FALSE}
+features <- read.csv("features.csv", header = TRUE)
+features <- features[, -8] # get rid of glcm_correlation with all 1 values
+firstorder <- read.csv("firstorder.csv", header = TRUE)
+colors <- read.csv("color_grayscale_fin.csv", header = TRUE)
+colors <- colors[, 2:13]
+circ <- read.csv("circularity.csv", header = TRUE) %>% as_vector
+truth <- read.csv("training_set_truth.csv", header = FALSE)
+truth <- truth[, 3]
+truth <- ifelse(truth == "malignant", 1, 0) # recode malignant as 1, benign as 0
+all.features <- cbind(firstorder, features, colors, circ)
+```
+
+```{r eda}
+# first order
+# entropy and uniformity seem to matter but are highly correlated
+# entropy slightly better
+pairs(truth ~ calc_energy + calc_entropy + calc_kurtosis + calc_meanDeviation + calc_skewness + calc_uniformity + calc_mean + calc_median + calc_RMS + calc_variance, data = firstorder)
+
+# colors
+pairs(truth ~ mean_r + mean_g + mean_b + sd_r + sd_g + sd_b + mean_i + sd_i + red_cv + green_cv + blue_cv + i_cv, data = colors)
+```
+
+```{r pca}
+pca <- prcomp(all.features, scale = TRUE, center = TRUE)
+pcs <- pca$x[, 1:10]
+
+pca.colors <- prcomp(colors, scale = TRUE, center = TRUE)
+colors.pcs <- pca.colors$x[, 1:3]
+```
+
+```{r ada-boost}
+ada.boost <- ada(truth ~ ., data = all.features, loss = "l", type = "discrete")
+ada.colors <- ada(truth ~ ., data = colors, loss = "l", type = "discrete")
+
+pca.ada <- ada(truth ~ pcs, loss = "l", type = "discrete")
+pca.colors <- ada(truth ~ colors.pcs, loss = "l", type = "discrete")
+```
+
+```{r ada-colors-cv, eval = FALSE}
+pred = rep(0,700)
+AUC = rep(0,100)
+
+for (j in 1:100) {
+ss = sample(700,replace=F)
+for (i in seq(1,700,by=70)) {
+    ada.colors.cv = ada(truth[-ss[i:(i+69)]] ~ ., data = colors[-ss[i:(i+69)],],
+                        loss = "l", type = "discrete")
+    pred[ss[i:(i+69)]] = predict(ada.colors.cv, newdata = colors[ss[i:(i+69)],])
+}
+
+xtabs(~truth + ifelse(pred<0.5,0,1))
+
+
+spec.sens = matrix(0,101,2)
+for (i in 0:100) {
+	spec.sens[i+1,1] = sum(truth == 0 & !ifelse(pred < i/100,0,1))/sum(truth==0)
+	spec.sens[i+1,2] = sum(truth == 1 & ifelse(pred < i/100,0,1))/sum(truth==1)	
+}
+
+(AUC[j] = sum(abs(diff(1-spec.sens[,1]))*spec.sens[1:100,2]))
+}
+```
+
+```{r ada-pca-cv, eval = FALSE}
+pred2 = rep(0,700)
+ss2 = sample(700, replace = FALSE)
+for (i in seq(1, 700, by = 70)) {
+    ada.pca.cv = ada(truth[-ss2[i:(i+69)]] ~ ., data = pcs[-ss2[i:(i+69)],],
+                       loss = "l", type = "discrete")
+    pred2[i:(i+69)] = predict(ada.pca.cv, newdata = pcs[ss2[i:(i+69)],])
+}
+
+pred2 <- pred2 - 1 # set pred to 0 and 1 instead of 1 and 2
+
+table(truth, pred2)
+
+spec.sens2 = matrix(0, 101, 2)
+for (i in 0:100) {
+	spec.sens2[i+1, 1] = sum(truth == 0 & !ifelse(pred2 < i/100, 0, 1))/sum(truth == 0)
+	spec.sens2[i+1, 2] = sum(truth == 1 & ifelse(pred2 < i/100, 0, 1))/sum(truth == 1)	
+}
+
+spec.sens2[which.max(apply(spec.sens2, 1, mean)),]
+
+plot(1 - spec.sens2[, 1],spec.sens2[, 2], ylab = "Sensitivity", xlab = "1 - Specificity", col = 4, type = "s"); abline(0, 1, col = 1)
+
+(AUC = sum(abs(diff(1-spec.sens2[,1]))*spec.sens2[1:100,2]))
+```
+
+```{r random-forest, eval = FALSE}
+rf <- randomForest(as.factor(truth) ~ ., data = all.features)
+```
+
+```{r gam}
+gams <- gam(truth ~ s(calc_entropy), data = all.features, family = binomial)
+```
+
+```{r gbm}
+gbm.first <- gbm(truth ~ calc_entropy, distribution = "bernoulli", data = firstorder)
+```
+
+```{r calibration}
+frequency.vs.probability <- function(p.lower,p.increment=0.01, model,events) {
+  fitted.probs <- fitted(model)
+  indices <- (fitted.probs >= p.lower) & (fitted.probs < p.lower+p.increment) &
+             !is.na(fitted.probs)
+  ave.prob <- mean(fitted.probs[indices])
+  frequency <- mean(events[indices])
+  # Changed the line below to variance of average instead of average of variance
+  individual.vars <- fitted.probs[indices]*(1-fitted.probs[indices])
+  var.of.average <- sum(individual.vars)/(sum(indices)^2)
+  se <- sqrt(var.of.average)
+  out <-c(frequency=frequency,ave.prob=ave.prob,se=se)
+  return(out)
+}
+
+plot.calibration <- function(model, p.increment=0.1, events) {
+  # This is just a function version of the Chapter 11 slide material
+  # Figure out the probability bins
+  p.lowers <- seq(from=0,to=1,by=p.increment)
+  # Get the actual frequencies, average probabilities, and standard errors
+  # for each
+  f.vs.p <- sapply(p.lowers,frequency.vs.probability,
+                   p.increment=p.increment,model=model,events=events)
+  # turn into a more-plottable data frame
+  f.vs.p <- t(f.vs.p)
+  f.vs.p <- as.data.frame(f.vs.p)
+  # plot the probability vs. frequency points
+  plot(f.vs.p$ave.prob,f.vs.p$frequency,xlab="Predicted probability",
+       ylab="Observed frequency",xlim=c(0,1),ylim=c(0,1),las=1,bty='n')
+  # add the 45 degree line for visual reference
+  abline(0,1,lty="dashed")
+  rug(fitted(model),col='lightgrey')
+  # Add error bars at +- 1.96 standard errors.  Note these are centered on
+  # the average probability, not on the observed frequency, so the point
+  # should fall inside the line _about_ 95% of the time (if there are a lot of
+  # observations in each bin)
+  segments(x0=f.vs.p$ave.prob,y0=f.vs.p$ave.prob-1.96*f.vs.p$se,
+           y1=f.vs.p$ave.prob+1.96*f.vs.p$se)
+  invisible(f.vs.p)
+}
+
+probs <- predict(gams, type = "response")
+table(truth, as.integer(probs > 0.15), dnn = c("Reality", "Prediction"))
+plot.calibration(gams, events = truth)
+```
