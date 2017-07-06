@@ -46,7 +46,7 @@ rf.pred <- predict(rf.model, newdata = test.x)
 
 
 ##################VVVVVVVVVVVVVVVVVVV CROSS VALIDATION VVVVVVVVVVVVVVVVVVV###################
-num_rounds <- 100
+num_rounds <- 10
 
 svm.sensitivity <- rep(0,num_rounds)
 nnet.sensitivity <- rep(0,num_rounds)
@@ -69,36 +69,36 @@ for (n in 1:num_rounds) {
   ss <- sample(700,replace=F)
   
   ### svm ###
-  #print("svm")
-  #svm.pred <- rep(0,700)
-  #for (i in seq(1,700,by=70)) {
-  #  svm.cv <- svm(truth[-ss[i:(i+69)]] ~ ., data = all.features.scaled[-ss[i:(i+69)],], kernel = "radial", cost = 10^2, gamma = 10^-3, class.weights = c("benign" = 0.2, "malignant" = 0.8))
-  #  svm.pred[ss[i:(i+69)]] = predict(svm.cv, newdata = all.features.scaled[ss[i:(i+69)],])
-  #}
-  #svm.table = table(truth, svm.pred)
+  print("svm")
+  svm.pred <- rep(0,700)
+  for (i in seq(1,700,by=70)) {
+    svm.cv <- svm(truth[-ss[i:(i+69)]] ~ ., data = all.features.scaled[-ss[i:(i+69)],], kernel = "radial", cost = 10^2, gamma = 10^-3, class.weights = c("benign" = 0.2, "malignant" = 0.8))
+    svm.pred[ss[i:(i+69)]] = predict(svm.cv, newdata = all.features.scaled[ss[i:(i+69)],])
+  }
+  svm.table = table(truth, svm.pred)
   
   ### nueral net ###
-  #print("nnet")
+  print("nnet")
   #truth.mxn = as.numeric(truth) - 1
   #mxn.pred <- rep(0,700)
-  #nnet.pred <- rep(0,700)
-  #for (i in seq(1,700,by=70)) {
+  nnet.pred <- rep(0,700)
+  for (i in seq(1,700,by=70)) {
     #mxn.cv = mx.mlp(all.features.scaled[-ss[i:(i+69)],], truth.mxn[-ss[i:(i+69)]], hidden_node = 10, out_node = 2, out_activation = "softmax", learning.rate = 0.1, eval.metric = mx.metric.accuracy)
     #mxn.pred[ss[i:(i+69)]] = predict(mxn.cv, newdata = all.features.scaled[ss[i:(i+69)],])
-    #nnet.cv <- nnet(truth[-ss[i:(i+69)]] ~ ., data = all.features.scaled[-ss[i:(i+69)],], size = 5, decay = 1.0e-5, maxit = 1000, trace=FALSE)
-    #nnet.pred[ss[i:(i+69)]] = predict(nnet.cv, newdata = all.features.scaled[ss[i:(i+69)],], type = "class")
-  #}
+    nnet.cv <- nnet(truth[-ss[i:(i+69)]] ~ ., data = all.features.scaled[-ss[i:(i+69)],], size = 5, decay = 1.0e-5, maxit = 1000, trace=FALSE)
+    nnet.pred[ss[i:(i+69)]] = predict(nnet.cv, newdata = all.features.scaled[ss[i:(i+69)],], type = "class")
+  }
   #mxn.table = table(truth.mxn, mxn.pred)
-  #nnet.table = table(truth, nnet.pred)
+  nnet.table = table(truth, nnet.pred)
   
   ### adaboost ###
-  #print("ada")
-  #ada.pred <- rep(0,700)
-  #for (i in seq(1,700,by=70)) {
-  #  ada.cv <- ada(truth[-ss[i:(i+69)]] ~ ., data = all.features[-ss[i:(i+69)],], loss = "e", type = "discrete")
-  #  ada.pred[ss[i:(i+69)]] = predict(ada.cv, newdata = all.features[ss[i:(i+69)],])
-  #}
-  #ada.table = table(truth, ada.pred)
+  print("ada")
+  ada.pred <- rep(0,700)
+  for (i in seq(1,700,by=70)) {
+    ada.cv <- ada(truth[-ss[i:(i+69)]] ~ ., data = all.features[-ss[i:(i+69)],], loss = "e", type = "discrete")
+    ada.pred[ss[i:(i+69)]] = predict(ada.cv, newdata = all.features[ss[i:(i+69)],])
+  }
+  ada.table = table(truth, ada.pred)
   
   ### random forest ###
   print("rf")
@@ -110,24 +110,24 @@ for (n in 1:num_rounds) {
   rf.table = table(truth, rf.pred)
   
   ### concurrency tables ###
-  #svm.table
-  #nnet.table
-  #ada.table
+  svm.table
+  nnet.table
+  ada.table
   rf.table
   
-  #svm.sensitivity[[n]] = svm.table[2,2] / 135
-  #nnet.sensitivity[[n]] = nnet.table[2,2] / 135
-  #ada.sensitivity[[n]] = ada.table[2,2] / 135
+  svm.sensitivity[[n]] = svm.table[2,2] / 135
+  nnet.sensitivity[[n]] = nnet.table[2,2] / 135
+  ada.sensitivity[[n]] = ada.table[2,2] / 135
   rf.sensitivity[[n]] = rf.table[2,2] / 135
   
-  #svm.specificity[[n]] = svm.table[1,1] / 565
-  #nnet.specificity[[n]] = nnet.table[1,1] / 565
-  #ada.specificity[[n]] = ada.table[1,1] / 565
+  svm.specificity[[n]] = svm.table[1,1] / 565
+  nnet.specificity[[n]] = nnet.table[1,1] / 565
+  ada.specificity[[n]] = ada.table[1,1] / 565
   rf.specificity[[n]] = rf.table[1,1] / 565
   
-  #svm.avg_accuracy[[n]] = (svm.sensitivity[[n]] + svm.specificity[[n]]) / 2
-  #nnet.avg_accuracy[[n]] = (nnet.sensitivity[[n]] + nnet.specificity[[n]]) / 2
-  #ada.avg_accuracy[[n]] = (ada.sensitivity[[n]] + ada.specificity[[n]]) / 2
+  svm.avg_accuracy[[n]] = (svm.sensitivity[[n]] + svm.specificity[[n]]) / 2
+  nnet.avg_accuracy[[n]] = (nnet.sensitivity[[n]] + nnet.specificity[[n]]) / 2
+  ada.avg_accuracy[[n]] = (ada.sensitivity[[n]] + ada.specificity[[n]]) / 2
   rf.avg_accuracy[[n]] = (rf.sensitivity[[n]] + rf.specificity[[n]]) / 2
 }
 
