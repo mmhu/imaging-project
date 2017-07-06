@@ -25,7 +25,7 @@ asym <- asym[,2] %>% as_vector
 truth <- read.csv("training_set_truth.csv", header = FALSE)
 truth$V3 = as.factor(truth$V3)
 truth = truth$V3
-all.features <- cbind(firstorder, features, color, circ, asym)
+all.features <- cbind(firstorder, features, colors, circ, asym)
 all.features.scaled <- scale(all.features, center=TRUE, scale=TRUE)
 all.features.scaled = as.data.frame(all.features.scaled)
 
@@ -36,8 +36,13 @@ all.features.scaled = as.data.frame(all.features.scaled)
 
 svm.model <- svm(train.y ~ ., data = train.xs, kernel = "radial", cost = 10^2, gamma = 10^-3, class.weights = c("benign" = 0.2, "malignant" = 0.8))
 nnet.model <- nnet(train.y ~ ., data = train.xs, size = 5, decay = 1.0e-5, maxit = 1000)
+<<<<<<< HEAD
 ada.model <-  ada(train.y ~ ., data = train.x, loss = "e", type = "discrete", iter=50, nu=0.08, rpart.control(maxdepth = 4))
 rf.model <- randomForest(as.factor(train.y) ~ ., data = train.x, ntree = 10)
+=======
+ada.model <-  ada(train.y ~ ., data = train.x, loss = "e", type = "discrete")
+rf.model <- randomForest(as.factor(train.y) ~ ., data = train.x, ntree = 4, mtry = 54, sampsize = 500, maxnodes = 20, classwt=(c("benign" = 0.2, "malignant" = 0.8)))
+>>>>>>> 3c5f1789b1e64e08b519cec974828bcc38520dc5
 
 svm.pred <- predict(svm.model, newdata = test.xs, type = "class")
 nnet.pred <- predict(nnet.model, newdata = test.xs, type = "class")
@@ -104,7 +109,7 @@ for (n in 1:num_rounds) {
   print("rf")
   rf.pred <- rep(0,700)
   for (i in seq(1,700,by=70)) {
-    rf.cv <- randomForest(as.factor(truth[-ss[i:(i+69)]]) ~ ., data = all.features[-ss[i:(i+69)],], ntree = 4, mtry = 54, classwt=(c("benign" = 0.2, "malignant" = 0.8)))
+    rf.cv <- randomForest(as.factor(truth[-ss[i:(i+69)]]) ~ ., data = all.features[-ss[i:(i+69)],], ntree = 4, mtry = 54, sampsize = 630, maxnodes = 20, classwt=(c("benign" = 0.2, "malignant" = 0.8)))
     rf.pred[ss[i:(i+69)]] = predict(rf.cv, newdata = all.features[ss[i:(i+69)],])
   }
   rf.table = table(truth, rf.pred)
