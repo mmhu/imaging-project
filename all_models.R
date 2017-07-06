@@ -36,7 +36,7 @@ all.features.scaled = as.data.frame(all.features.scaled)
 
 svm.model <- svm(train.y ~ ., data = train.xs, kernel = "radial", cost = 10^2, gamma = 10^-3, class.weights = c("benign" = 0.2, "malignant" = 0.8))
 nnet.model <- nnet(train.y ~ ., data = train.xs, size = 5, decay = 1.0e-5, maxit = 1000)
-ada.model <-  ada(train.y ~ ., data = train.x, loss = "e", type = "discrete")
+ada.model <-  ada(train.y ~ ., data = train.x, loss = "e", type = "discrete", iter=50, nu=0.08, rpart.control(maxdepth = 4))
 rf.model <- randomForest(as.factor(train.y) ~ ., data = train.x, ntree = 10)
 
 svm.pred <- predict(svm.model, newdata = test.xs, type = "class")
@@ -95,7 +95,7 @@ for (n in 1:num_rounds) {
   print("ada")
   ada.pred <- rep(0,700)
   for (i in seq(1,700,by=70)) {
-    ada.cv <- ada(truth[-ss[i:(i+69)]] ~ ., data = all.features[-ss[i:(i+69)],], loss = "e", type = "discrete")
+    ada.cv <- ada(truth[-ss[i:(i+69)]] ~ ., data = all.features[-ss[i:(i+69)],], loss = "e", type = "discrete", iter=50, nu=0.08, rpart.control(maxdepth = 4))
     ada.pred[ss[i:(i+69)]] = predict(ada.cv, newdata = all.features[ss[i:(i+69)],])
   }
   ada.table = table(truth, ada.pred)
