@@ -36,13 +36,10 @@ all.features.scaled = as.data.frame(all.features.scaled)
 
 svm.model <- svm(train.y ~ ., data = train.xs, kernel = "radial", cost = 10^2, gamma = 10^-3, class.weights = c("benign" = 0.2, "malignant" = 0.8))
 nnet.model <- nnet(train.y ~ ., data = train.xs, size = 5, decay = 1.0e-5, maxit = 1000)
-<<<<<<< HEAD
+
 ada.model <-  ada(train.y ~ ., data = train.x, loss = "e", type = "discrete", iter=50, nu=0.08, rpart.control(maxdepth = 4))
-rf.model <- randomForest(as.factor(train.y) ~ ., data = train.x, ntree = 10)
-=======
-ada.model <-  ada(train.y ~ ., data = train.x, loss = "e", type = "discrete")
 rf.model <- randomForest(as.factor(train.y) ~ ., data = train.x, ntree = 4, mtry = 54, sampsize = 500, maxnodes = 20, classwt=(c("benign" = 0.2, "malignant" = 0.8)))
->>>>>>> 3c5f1789b1e64e08b519cec974828bcc38520dc5
+
 
 svm.pred <- predict(svm.model, newdata = test.xs, type = "class")
 nnet.pred <- predict(nnet.model, newdata = test.xs, type = "class")
