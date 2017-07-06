@@ -1,37 +1,48 @@
 # SVM #
 library(e1071)
 
-features <- scale(features, center=TRUE, scale=TRUE)
-features = as.matrix(features)
+features <- read.csv("features.csv", header = TRUE)
+features <- features[, -8] # get rid of glcm_correlation with all 1 values
+firstorder <- read.csv("firstorder.csv", header = TRUE)
+colors <- read.csv("colors.csv", header = TRUE)
+colors <- colors[, 2:13]
+circ <- read.csv("circularity.csv", header = TRUE) %>% as_vector
+asym <- read.csv("asym.csv", header = TRUE)
+asym <- asym[,2] %>% as_vector
+truth <- read.csv("training_set_truth.csv", header = FALSE)
+truth$V3 = as.factor(truth$V3)
+truth = truth$V3
+all.features <- cbind(firstorder, features, colors, circ)
+all.features.scaled <- scale(all.features, center=TRUE, scale=TRUE)
+all.features.scaled = as.data.frame(all.features.scaled)
 
-
-C.values <- c(10^-3,10^-2,10^-1,10^0,10^1,10^2,10^3)
-g.values <- c(10^-3,10^-2,10^-1,10^0,10^1,10^2,10^3)
-accuracy <- matrix(0, nrow = 7, ncol = 7)
-rownames(accuracy) <- c("10^-3","10^-2","10^-1","10^0","10^1","10^2","10^3")
-colnames(accuracy) <- c("10^-3","10^-2","10^-1","10^0","10^1","10^2","10^3")
-sensitivity <- matrix(0, nrow = 7, ncol = 7)
-rownames(sensitivity) <- c("10^-3","10^-2","10^-1","10^0","10^1","10^2","10^3")
-colnames(sensitivity) <- c("10^-3","10^-2","10^-1","10^0","10^1","10^2","10^3")
-specificity <- matrix(0, nrow = 7, ncol = 7)
-rownames(specificity) <- c("10^-3","10^-2","10^-1","10^0","10^1","10^2","10^3")
-colnames(specificity) <- c("10^-3","10^-2","10^-1","10^0","10^1","10^2","10^3")
-avg_accuracy <- matrix(0, nrow = 7, ncol = 7)
-rownames(avg_accuracy) <- c("10^-3","10^-2","10^-1","10^0","10^1","10^2","10^3")
-colnames(avg_accuracy) <- c("10^-3","10^-2","10^-1","10^0","10^1","10^2","10^3")
-for (z in 1:100) {
-  print(z)
-  sampleidx <- sample(700, 500)
+num_rounds <- 10
+ss <- 500
+C.values <- c(10^1,10^1*5,10^2,10^2*5,10^3,10^3*5,10^4,10^4*5,10^5,10^5*5)
+g.values <- c(10^-5,10^-5*5,10^-4,10^-4*5,10^-3,10^-3*5,10^-2,10^-2*5)
+accuracy <- matrix(0, nrow = 10, ncol = 8)
+rownames(accuracy) <- c("10^1","10^1*5","10^2","10^2*5","10^3","10^3*5","10^4","10^4*5","10^5","10^5*5")
+colnames(accuracy) <- c("10^-5","10^-5*5","10^-4","10^-4*5","10^-3","10^-3*5","10^-2","10^-2*5")
+sensitivity <- matrix(0, nrow = 10, ncol = 8)
+rownames(sensitivity) <- c("10^1","10^1*5","10^2","10^2*5","10^3","10^3*5","10^4","10^4*5","10^5","10^5*5")
+colnames(sensitivity) <- c("10^-5","10^-5*5","10^-4","10^-4*5","10^-3","10^-3*5","10^-2","10^-2*5")
+specificity <- matrix(0, nrow = 10, ncol = 8)
+rownames(specificity) <- c("10^1","10^1*5","10^2","10^2*5","10^3","10^3*5","10^4","10^4*5","10^5","10^5*5")
+colnames(specificity) <- c("10^-5","10^-5*5","10^-4","10^-4*5","10^-3","10^-3*5","10^-2","10^-2*5")
+avg_accuracy <- matrix(0, nrow = 10, ncol = 8)
+rownames(avg_accuracy) <- c("10^1","10^1*5","10^2","10^2*5","10^3","10^3*5","10^4","10^4*5","10^5","10^5*5")
+colnames(avg_accuracy) <- c("10^-5","10^-5*5","10^-4","10^-4*5","10^-3","10^-3*5","10^-2","10^-2*5")
+for (n in 1:num_rounds) {
+  print(n)
+  sampleidx <- sample(700, ss)
   train.x <- all.features[sampleidx,]
   train.y <- truth[sampleidx]
   test.x <- all.features[-sampleidx,]
   test.y <- truth[-sampleidx]
-
-  for (i in 1:7) {
+  for (i in 1:10) {
     c <-  C.values[[i]]
-    for (j in 1:7) {
+    for (j in 1:8) {
       g <- g.values[[j]]
-      # winner: benign = 0.2, malignant = 0.8
       svm.model <- svm(train.y ~ ., data = train.x, kernel = "radial", cost = c, gamma = g, class.weights = c("benign" = 0.2, "malignant" = 0.8))
       svm.pred <- predict(svm.model, test.x)
       cm <- table(svm.pred, test.y)
@@ -43,10 +54,12 @@ for (z in 1:100) {
 }
 
 avg_accuracy = (sensitivity + specificity) / 2
-accuracy = accuracy / 100
-sensitivity = sensitivity / 100
-specificity = specificity / 100
-avg_accuracy = avg_accuracy / 100
+accuracy = accuracy / num_rounds
+sensitivity = sensitivity / num_rounds
+specificity = specificity / num_rounds
+avg_accuracy = avg_accuracy / num_rounds
 
+sensitivity
+specificity
 avg_accuracy
 

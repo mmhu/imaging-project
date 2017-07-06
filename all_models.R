@@ -25,7 +25,7 @@ asym <- asym[,2] %>% as_vector
 truth <- read.csv("training_set_truth.csv", header = FALSE)
 truth$V3 = as.factor(truth$V3)
 truth = truth$V3
-all.features <- cbind(firstorder, features, colors, circ, asym)
+all.features <- cbind(firstorder, features, colors, circ)
 all.features.scaled <- scale(all.features, center=TRUE, scale=TRUE)
 all.features.scaled = as.data.frame(all.features.scaled)
 
@@ -65,6 +65,7 @@ nnet.avg_accuracy <- rep(0,num_rounds)
 ada.avg_accuracy <- rep(0,num_rounds)
 rf.avg_accuracy <- rep(0,num_rounds)
 
+
 for (n in 1:num_rounds) {
   print(paste0("n: ", n))
   
@@ -75,6 +76,45 @@ for (n in 1:num_rounds) {
   svm.pred <- rep(0,700)
   for (i in seq(1,700,by=70)) {
     svm.cv <- svm(truth[-ss[i:(i+69)]] ~ ., data = all.features.scaled[-ss[i:(i+69)],], kernel = "radial", cost = 10^2, gamma = 10^-3, class.weights = c("benign" = 0.2, "malignant" = 0.8))
+    svm.pred[ss[i:(i+69)]] = predict(svm.cv, newdata = all.features.scaled[ss[i:(i+69)],])
+  }
+  svm.table = table(truth, svm.pred)
+
+  ### concurrency tables ###
+  svm.table
+
+  svm.sensitivity[[n]] = svm.table[2,2] / 135
+
+  svm.specificity[[n]] = svm.table[1,1] / 565
+
+  svm.avg_accuracy[[n]] = (svm.sensitivity[[n]] + svm.specificity[[n]]) / 2
+}
+svm.sensitivity.mean <- mean(svm.sensitivity)
+svm.specificity.mean <- mean(svm.specificity)
+svm.avg_accuracy.mean <- mean(svm.avg_accuracy)
+svm.sensitivity.mean
+svm.specificity.mean
+svm.avg_accuracy.mean
+
+
+
+
+
+
+
+
+
+
+for (n in 1:num_rounds) {
+  print(paste0("n: ", n))
+  
+  ss <- sample(700,replace=F)
+  
+  ### svm ###
+  print("svm")
+  svm.pred <- rep(0,700)
+  for (i in seq(1,700,by=70)) {
+    svm.cv <- svm(truth[-ss[i:(i+69)]] ~ ., data = all.features.scaled[-ss[i:(i+69)],], kernel = "radial", cost = 10^2*5, gamma = 10^-5*5, class.weights = c("benign" = 0.2, "malignant" = 0.8))
     svm.pred[ss[i:(i+69)]] = predict(svm.cv, newdata = all.features.scaled[ss[i:(i+69)],])
   }
   svm.table = table(truth, svm.pred)
