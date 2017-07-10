@@ -20,7 +20,7 @@ all.features <- cbind(firstorder, features, colors, circ)
 all.features.scaled <- scale(all.features, center=TRUE, scale=TRUE)
 all.features.scaled = as.data.frame(all.features.scaled)
 
-num_rounds <- 500
+num_rounds <- 100
 ss <- 500
 #r.values <- c(10^-6,10^-5,10^-4,10^-3,10^-2,10^-1,10^0,10^1,10^2)
 C.values <- c(10^1,10^1*5,10^2,10^2*5,10^3,10^3*5,10^4,10^4*5,10^5,10^5*5)
