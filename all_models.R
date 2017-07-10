@@ -255,6 +255,9 @@ ada.perf <- performance(ada.predictions,"tpr","fpr")
 plot(ada.perf,main="ROC Curve for AdaBoost",col=2,lwd=2)
 abline(a=0,b=1,lwd=2,lty=2,col="gray")
 
+ada_avg_acc <- (ada.predictions@tp[[1]]/135+ada.predictions@tn[[1]]/565)/2
+which.max(ada_avg_acc)
+ada.predictions@cutoffs[[1]][362]
 ###RandomForest Curve###
 rf.cv <- randomForest(x= all.features, y=truth,tree = 4, mtry = 54, sampsize = 630, maxnodes = 20, classwt=(c("benign" = 0.2, "malignant" = 0.8)))
 rf.pred = predict(rf.cv, newdata = all.features,type="prob")
