@@ -12,6 +12,7 @@ library(tidyverse)
 library(mgcv)
 library(gbm)
 library(nnet)
+library(ROCR)
 
 ### get features ###
 features <- read.csv("features.csv", header = TRUE)
@@ -39,7 +40,7 @@ test.xs <- all.features.scaled[-sampleidx,]
 test.y <- truth[-sampleidx]
 
 
-svm.modelr1 <- svm(train.y ~ ., data = train.xs, kernel = "radial", cost = 10^2, gamma = 10^-3, class.weights = c("benign" = 0.2, "malignant" = 0.8))
+svm.modelr1 <- svm(train.y ~ ., data = train.xs, kernel = "radial", cost = 10^2, gamma = 10^-3, class.weights = c("benign" = 0.2, "malignant" = 0.8),probability=TRUE)
 svm.modelr2 <- svm(train.y ~ ., data = train.xs, kernel = "radial", cost = 10^3*5, gamma = 10^-5*5, class.weights = c("benign" = 0.2, "malignant" = 0.8))
 svm.modelr3 <- svm(train.y ~ ., data = train.xs, kernel = "radial", cost = 10^2*5, gamma = 10^-4*5, class.weights = c("benign" = 0.2, "malignant" = 0.8))
 svm.modelr4 <- svm(train.y ~ ., data = train.xs, kernel = "radial", cost = 10^3*5, gamma = 10^-5, class.weights = c("benign" = 0.2, "malignant" = 0.8))
@@ -50,7 +51,7 @@ svm.models3 <- svm(train.y ~ ., data = train.xs, kernel = "sigmoid", coef0 = 10^
 svm.models4 <- svm(train.y ~ ., data = train.xs, kernel = "sigmoid", coef0 = 10^-3, cost = 10^2, gamma = 10^-4*5, class.weights = c("benign" = 0.2, "malignant" = 0.8))
 svm.models5 <- svm(train.y ~ ., data = train.xs, kernel = "sigmoid", coef0 = 10^-6, cost = 10^3, gamma = 10^-5*5, class.weights = c("benign" = 0.2, "malignant" = 0.8))
 
-#svm.pred <- predict(svm.model, newdata = test.xs, type = "class")
+svm.pred <- predict(svm.modelr1, newdata = test.xs, probability=TRUE)
 #nnet.pred <- predict(nnet.model, newdata = test.xs, type = "class")
 #ada.pred <- predict(ada.model, newdata = test.x)
 #rf.pred <- predict(rf.model, newdata = test.x)
@@ -212,4 +213,97 @@ nnet.avg_accuracy.mean
 ada.avg_accuracy.mean
 rf.avg_accuracy.mean
 
+##ROC curve##
+for (n in 1:num_rounds) {
+  print(paste0("n: ", n))
+  
+  ss <- sample(700,replace=F)
+  
+  ### svm ###
+  print("svm")
+  svm.pred <- rep(0,700)
 
+  for (i in seq(1,700,by=70)) {
+    svm.cv <- svm(truth[-ss[i:(i+69)]] ~ ., data = all.features.scaled[-ss[i:(i+69)],], probability=TRUE,kernel = "sigmoid", cost = 10^2, coef0 = 10^-1, gamma = 10^-4*5, class.weights = c("benign" = 0.2, "malignant" = 0.8))
+    svm.pred[ss[i:(i+69)]] = predict(svm.cv, newdata = all.features.scaled[ss[i:(i+69)],])
+  }
+  svm.table = table(truth, svm.pred)
+  
+  ### concurrency tables ###
+  svm.table
+  
+  svm.sensitivity[[n]] = svm.table[2,2] / 135
+  
+  svm.specificity[[n]] = svm.table[1,1] / 565
+  
+  svm.avg_accuracy[[n]] = (svm.sensitivity[[n]] + svm.specificity[[n]]) / 2
+}
+
+
+
+##ada ROC curve##
+ada.pred <- matrix(data=NA,nrow=700,ncol=2)
+for (i in seq(1,700,by=70)) {
+  ada.cv <- ada(truth[-ss[i:(i+69)]] ~ ., data = all.features[-ss[i:(i+69)],], loss = "e", type = "discrete", iter=50, nu=0.08, rpart.control(maxdepth = 4))
+  ada.pred[ss[i:(i+69)],] = predict(ada.cv, newdata = all.features[ss[i:(i+69)],],type="prob")
+}
+
+ada.predictions <- prediction(ada.pred[,2],labels=truth)
+
+ada.perf <- performance(ada.predictions,"tpr","fpr")
+
+plot(ada.perf,main="ROC Curve for AdaBoost",col=2,lwd=2)
+abline(a=0,b=1,lwd=2,lty=2,col="gray")
+
+###RandomForest Curve###
+rf.cv <- randomForest(x= all.features, y=truth,tree = 4, mtry = 54, sampsize = 630, maxnodes = 20, classwt=(c("benign" = 0.2, "malignant" = 0.8)))
+rf.pred = predict(rf.cv, newdata = all.features,type="prob")
+
+
+rf.pred <- matrix(data=NA,nrow=700,ncol=2)
+for (i in seq(1,700,by=70)) {
+  rf.cv <- randomForest(as.factor(truth[-ss[i:(i+69)]]) ~ ., data = all.features[-ss[i:(i+69)],], ntree = 4, mtry = 54, sampsize = 630, maxnodes = 20, classwt=(c("benign" = 0.2, "malignant" = 0.8)))
+  rf.pred[ss[i:(i+69)],] = predict(rf.cv, newdata = all.features[ss[i:(i+69)],],type="prob")
+}
+rf.table = table(truth, rf.pred)
+
+rf.predictions <- prediction(rf.pred[,2],labels=truth)
+
+rf.perf <- performance(rf.predictions,"tpr","fpr")
+
+plot(rf.perf,main="ROC Curve for Random Forest",col=2,lwd=2)
+abline(a=0,b=1,lwd=2,lty=2,col="gray")
+
+## svm ROC ##
+
+svm.pred <- matrix(data=NA,nrow=700,ncol=2)
+for (i in seq(1,700,by=70)) {
+  svm.cv <- svm(truth[-ss[i:(i+69)]] ~ ., data = all.features.scaled[-ss[i:(i+69)],], probability=TRUE, kernel = "radial", cost = 10^2*5, gamma = 10^-5*5, class.weights = c("benign" = 0.2, "malignant" = 0.8))
+  svm.pred.class <- predict(svm.cv, newdata = all.features.scaled[ss[i:(i+69)],], probability=TRUE)
+  svm.pred[ss[i:(i+69)],] <- attr(svm.pred.class,"probabilities")
+}
+svm.table = table(truth, svm.pred)
+
+svm.predictions <- prediction(svm.pred[,2],labels=truth)
+
+svm.perf <- performance(svm.predictions,"tpr","fpr")
+
+plot(svm.perf,main="ROC Curve for SVM",col=2,lwd=2)
+abline(a=0,b=1,lwd=2,lty=2,col="gray")
+
+## neural network ROC ##
+
+nnet.pred <- rep(0,700)
+for (i in seq(1,700,by=70)) {
+  #mxn.cv = mx.mlp(all.features.scaled[-ss[i:(i+69)],], truth.mxn[-ss[i:(i+69)]], hidden_node = 10, out_node = 2, out_activation = "softmax", learning.rate = 0.1, eval.metric = mx.metric.accuracy)
+  #mxn.pred[ss[i:(i+69)]] = predict(mxn.cv, newdata = all.features.scaled[ss[i:(i+69)],])
+  nnet.cv <- nnet(truth[-ss[i:(i+69)]] ~ ., data = all.features[-ss[i:(i+69)],], size = 5, decay = 1.0e-5, maxit = 1000, trace=FALSE)
+  nnet.pred[ss[i:(i+69)]] = predict(nnet.cv, newdata = all.features[ss[i:(i+69)],], type = "raw")
+}
+
+nn.predictions = prediction(nnet.pred,truth)
+
+nn.perf = performance(nn.predictions,"tpr","fpr")
+
+plot(nn.perf,main="ROC Curve for NN",col=2,lwd=2)
+abline(a=0,b=1,lwd=2,lty=2,col="gray")
