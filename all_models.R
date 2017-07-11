@@ -95,14 +95,7 @@ for (round in 1:50) {
   print(acc)
 }
 
-
-
-
-
 svm.modelr1 <- svm(train.y ~ ., data = train.xs, kernel = "radial", cost = 10^2, gamma = 10^-3, class.weights = c("benign" = 0.2, "malignant" = 0.8))
-=======
-  svm.modelr1 <- svm(train.y ~ ., data = train.xs, kernel = "radial", cost = 10^2, gamma = 10^-3, class.weights = c("benign" = 0.2, "malignant" = 0.8),probability=TRUE)
->>>>>>> 8becf47eb79a527cca15528b96efb9f98aabad0c
 svm.modelr2 <- svm(train.y ~ ., data = train.xs, kernel = "radial", cost = 10^3*5, gamma = 10^-5*5, class.weights = c("benign" = 0.2, "malignant" = 0.8))
 svm.modelr3 <- svm(train.y ~ ., data = train.xs, kernel = "radial", cost = 10^2*5, gamma = 10^-4*5, class.weights = c("benign" = 0.2, "malignant" = 0.8))
 svm.modelr4 <- svm(train.y ~ ., data = train.xs, kernel = "radial", cost = 10^3*5, gamma = 10^-5, class.weights = c("benign" = 0.2, "malignant" = 0.8))
@@ -112,49 +105,6 @@ svm.models2 <- svm(train.y ~ ., data = train.xs, kernel = "sigmoid", coef0 = 10^
 svm.models3 <- svm(train.y ~ ., data = train.xs, kernel = "sigmoid", coef0 = 10^0, cost = 10^4*5, gamma = 10^-5, class.weights = c("benign" = 0.2, "malignant" = 0.8))
 svm.models4 <- svm(train.y ~ ., data = train.xs, kernel = "sigmoid", coef0 = 10^-3, cost = 10^2, gamma = 10^-4*5, class.weights = c("benign" = 0.2, "malignant" = 0.8))
 svm.models5 <- svm(train.y ~ ., data = train.xs, kernel = "sigmoid", coef0 = 10^-6, cost = 10^3, gamma = 10^-5*5, class.weights = c("benign" = 0.2, "malignant" = 0.8))
-
-<<<<<<< HEAD
-svm.predr1 <- predict(svm.modelr1, newdata = test.xs, type = "class")
-svm.predr2 <- predict(svm.modelr2, newdata = test.xs, type = "class")
-svm.predr3 <- predict(svm.modelr3, newdata = test.xs, type = "class")
-svm.predr4 <- predict(svm.modelr4, newdata = test.xs, type = "class")
-svm.predr5 <- predict(svm.modelr5, newdata = test.xs, type = "class")
-svm.preds1 <- predict(svm.models1, newdata = test.xs, type = "class")
-svm.preds2 <- predict(svm.models2, newdata = test.xs, type = "class")
-svm.preds3 <- predict(svm.models3, newdata = test.xs, type = "class")
-svm.preds4 <- predict(svm.models4, newdata = test.xs, type = "class")
-svm.preds5 <- predict(svm.models5, newdata = test.xs, type = "class")
-
-#svm.pred <- predict(svm.model, newdata = test.xs, type = "class")
-=======
-  svm.pred <- predict(svm.modelr1, newdata = test.xs, probability=TRUE)
->>>>>>> 8becf47eb79a527cca15528b96efb9f98aabad0c
-#nnet.pred <- predict(nnet.model, newdata = test.xs, type = "class")
-#ada.pred <- predict(ada.model, newdata = test.x)
-#rf.pred <- predict(rf.model, newdata = test.x)
-
-r1.tb <- table(test.y, svm.predr1)
-r2.tb <- table(test.y, svm.predr2)
-r3.tb <- table(test.y, svm.predr3)
-r4.tb <- table(test.y, svm.predr4)
-r5.tb <- table(test.y, svm.predr5)
-s1.tb <- table(test.y, svm.preds1)
-s2.tb <- table(test.y, svm.preds2)
-s3.tb <- table(test.y, svm.preds3)
-s4.tb <- table(test.y, svm.preds4)
-s5.tb <- table(test.y, svm.preds5)
-
-r1.tb
-r2.tb
-r3.tb
-r4.tb
-r5.tb
-s1.tb
-s2.tb
-s3.tb
-s4.tb
-s5.tb
-
 
 ##################VVVVVVVVVVVVVVVVVVV CROSS VALIDATION VVVVVVVVVVVVVVVVVVV###################
 num_rounds <- 10
@@ -174,73 +124,27 @@ nnet.avg_accuracy <- rep(0,num_rounds)
 ada.avg_accuracy <- rep(0,num_rounds)
 rf.avg_accuracy <- rep(0,num_rounds)
 
-
 for (n in 1:num_rounds) {
   print(paste0("n: ", n))
-  
   ss <- sample(700,replace=F)
   
   ### svm ###
   print("svm")
   svm.pred <- rep(0,700)
   for (i in seq(1,700,by=70)) {
-    svm.cv <- svm(truth[-ss[i:(i+69)]] ~ ., data = all.features.scaled[-ss[i:(i+69)],], kernel = "sigmoid", cost = 10^2, coef0 = 10^-1, gamma = 10^-4*5, class.weights = c("benign" = 0.2, "malignant" = 0.8))
+    svm.cv <- svm(truth[-ss[i:(i+69)]] ~ ., data = all.features.scaled[-ss[i:(i+69)],], kernel = "radial", cost = 10^2*5, gamma = 10^-5*5, class.weights = c("benign" = 0.2, "malignant" = 0.8))
     svm.pred[ss[i:(i+69)]] = predict(svm.cv, newdata = all.features.scaled[ss[i:(i+69)],])
   }
   svm.table = table(truth, svm.pred)
   
-  ### concurrency tables ###
-  svm.table
-  
-  svm.sensitivity[[n]] = svm.table[2,2] / 135
-  
-  svm.specificity[[n]] = svm.table[1,1] / 565
-  
-  svm.avg_accuracy[[n]] = (svm.sensitivity[[n]] + svm.specificity[[n]]) / 2
-}
-svm.sensitivity.mean <- mean(svm.sensitivity)
-svm.specificity.mean <- mean(svm.specificity)
-svm.avg_accuracy.mean <- mean(svm.avg_accuracy)
-svm.sensitivity.mean
-svm.specificity.mean
-svm.avg_accuracy.mean
-
-
-
-
-
-
-
-
-
-
-for (n in 1:num_rounds) {
-  print(paste0("n: ", n))
-  
-  ss <- sample(700,replace=F)
-  
-  ### svm ###
-  #print("svm")
-  #svm.pred <- rep(0,700)
-  #for (i in seq(1,700,by=70)) {
-  #  svm.cv <- svm(truth[-ss[i:(i+69)]] ~ ., data = all.features.scaled[-ss[i:(i+69)],], kernel = "radial", cost = 10^2*5, gamma = 10^-5*5, class.weights = c("benign" = 0.2, "malignant" = 0.8))
-  #  svm.pred[ss[i:(i+69)]] = predict(svm.cv, newdata = all.features.scaled[ss[i:(i+69)],])
-  #}
-  #svm.table = table(truth, svm.pred)
-  
   ### nueral net ###
-  #print("nnet")
-  #truth.mxn = as.numeric(truth) - 1
-  #mxn.pred <- rep(0,700)
-  #nnet.pred <- rep(0,700)
-  #for (i in seq(1,700,by=70)) {
-  #mxn.cv = mx.mlp(all.features.scaled[-ss[i:(i+69)],], truth.mxn[-ss[i:(i+69)]], hidden_node = 10, out_node = 2, out_activation = "softmax", learning.rate = 0.1, eval.metric = mx.metric.accuracy)
-  #mxn.pred[ss[i:(i+69)]] = predict(mxn.cv, newdata = all.features.scaled[ss[i:(i+69)],])
-  #  nnet.cv <- nnet(truth[-ss[i:(i+69)]] ~ ., data = all.features.scaled[-ss[i:(i+69)],], size = 5, decay = 1.0e-5, maxit = 1000, trace=FALSE)
-  #  nnet.pred[ss[i:(i+69)]] = predict(nnet.cv, newdata = all.features.scaled[ss[i:(i+69)],], type = "class")
-  #}
-  #mxn.table = table(truth.mxn, mxn.pred)
-  #nnet.table = table(truth, nnet.pred)
+  print("nnet")
+  nnet.pred <- rep(0,700)
+  for (i in seq(1,700,by=70)) {
+    nnet.cv <- nnet(truth[-ss[i:(i+69)]] ~ ., data = all.features.scaled[-ss[i:(i+69)],], size = 5, decay = 1.0e-5, maxit = 1000, trace=FALSE)
+    nnet.pred[ss[i:(i+69)]] = predict(nnet.cv, newdata = all.features.scaled[ss[i:(i+69)],], type = "class")
+  }
+  nnet.table = table(truth, nnet.pred)
   
   ### adaboost ###
   print("ada")
@@ -255,7 +159,7 @@ for (n in 1:num_rounds) {
   print("rf")
   rf.pred <- rep(0,700)
   for (i in seq(1,700,by=70)) {
-    rf.cv <- randomForest(as.factor(truth[-ss[i:(i+69)]]) ~ ., data = all.features.scaled[-ss[i:(i+69)],], ntree = 4, mtry = 54, sampsize = 630, maxnodes = 20, classwt=(c("benign" = 0.2, "malignant" = 0.8)))
+    rf.cv <- randomForest(as.factor(truth[-ss[i:(i+69)]]) ~ ., data = all.features.scaled[-ss[i:(i+69)],], ntree = 4, mtry = 18, sampsize = 630, maxnodes = 20, classwt=(c("benign" = 0.2, "malignant" = 0.8)))
     rf.pred[ss[i:(i+69)]] = predict(rf.cv, newdata = all.features.scaled[ss[i:(i+69)],])
   }
   rf.table = table(truth, rf.pred)
