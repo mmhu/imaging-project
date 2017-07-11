@@ -243,9 +243,11 @@ for (n in 1:num_rounds) {
 
 ##ada ROC curve##
 ada.pred <- matrix(data=NA,nrow=700,ncol=2)
+ada.features <- cbind(firstorder, colors, circ)
+
 for (i in seq(1,700,by=70)) {
-  ada.cv <- ada(truth[-ss[i:(i+69)]] ~ ., data = all.features[-ss[i:(i+69)],], loss = "e", type = "discrete", iter=50, nu=0.08, rpart.control(maxdepth = 4))
-  ada.pred[ss[i:(i+69)],] = predict(ada.cv, newdata = all.features[ss[i:(i+69)],],type="prob")
+  ada.cv <- ada(truth[-ss[i:(i+69)]] ~ ., data = ada.features[-ss[i:(i+69)],], loss = "e", type = "discrete", iter=50, nu=0.08, rpart.control(maxdepth = 4))
+  ada.pred[ss[i:(i+69)],] = predict(ada.cv, newdata = ada.features[ss[i:(i+69)],],type="prob")
 }
 
 ada.predictions <- prediction(ada.pred[,2],labels=truth)
