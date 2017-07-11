@@ -245,6 +245,14 @@ for (n in 1:num_rounds) {
 
 
 ##ada ROC curve##
+<<<<<<< HEAD
+ada.pred <- matrix(data=NA,nrow=700,ncol=2)
+ada.features <- cbind(firstorder, colors, circ)
+
+for (i in seq(1,700,by=70)) {
+  ada.cv <- ada(truth[-ss[i:(i+69)]] ~ ., data = ada.features[-ss[i:(i+69)],], loss = "e", type = "discrete", iter=50, nu=0.08, rpart.control(maxdepth = 4))
+  ada.pred[ss[i:(i+69)],] = predict(ada.cv, newdata = ada.features[ss[i:(i+69)],],type="prob")
+=======
 num_rounds <- 100
 
 ada.pred <- matrix(data=0,nrow=700,ncol=2)
@@ -256,6 +264,7 @@ for (r in 1:num_rounds) {
     ada.cv <- ada(truth[-ss[i:(i+69)]] ~ ., data = all.features[-ss[i:(i+69)],], loss = "e", type = "discrete", iter=50, nu=0.08, rpart.control(maxdepth = 4))
     ada.pred[ss[i:(i+69)],] = ada.pred[ss[i:(i+69)],] + predict(ada.cv, newdata = all.features[ss[i:(i+69)],],type="prob")
   }
+>>>>>>> 550f2c1fd3fb4caafc06566baa6fdcf0206bee98
 }
 ada.pred <- ada.pred / num_rounds
 
@@ -266,9 +275,15 @@ ada.perf <- performance(ada.predictions,"tpr","fpr")
 plot(ada.perf,main="ROC Curve for AdaBoost",col=2,lwd=2)
 abline(a=0,b=1,lwd=2,lty=2,col="gray")
 
+<<<<<<< HEAD
+ada_avg_acc <- (ada.predictions@tp[[1]]/135+ada.predictions@tn[[1]]/565)/2
+which.max(ada_avg_acc)
+ada.predictions@cutoffs[[1]][362]
+=======
 avg_accuracies <- (ada.predictions@tp[[1]]/135 + ada.predictions@tn[[1]]/565) / 2
 threshold <- ada.predictions@cutoffs[[1]][which.max(avg_accuracies)]
 
+>>>>>>> 550f2c1fd3fb4caafc06566baa6fdcf0206bee98
 ###RandomForest Curve###
 ss <- sample(700,replace=F)
 

@@ -95,21 +95,27 @@ all.features.scaled <- scale(all.features, center=TRUE, scale=TRUE)
 all.features.scaled = as.data.frame(all.features.scaled)
 all.features.scaled.truth <- cbind(all.features.scaled,truth)
 
-ss = sample(700,replace=F)
+colnames(all.features.scaled.truth)
 
-control <- trainControl(method="cv",number=10,search="grid")
+avg_accuracy <- function(data,lev,model){
+  avg <- (sum(data[,"obs"]==lev[1]&data[,"pred"]==lev[1])/sum(data[,"obs"]==lev[1])+sum(data[,"obs"]==lev[2]&data[,"pred"]==lev[2])/sum(data[,"obs"]==lev[2]))/2
+  c(mean_acc = avg)
+  }
+
+control <- trainControl(method="cv",number=10,summaryFunction = avg_accuracy)
 tunegrid <- expand.grid(.nu=1:10/100,.iter=c(40,50,60,70),.maxdepth=1:8)
-ada_gridsearch <- train(truth~., data=all.features.scaled.truth[,c(1:20,32,33)], method="ada", metric="Accuracy", tuneGrid=tunegrid, trControl=control)
+ada_gridsearch <- train(truth~., data=all.features.scaled.truth[,c(1:13,32,33)], method="ada", tuneGrid=tunegrid, trControl=control,metric="mean_acc")
 
-results_ada <- train(x=all.features.scaled, y=truth, method="ada", iter=60,maxdepth=6,nu=0.07)
-results_ada
+summary(ada_gridsearch)
 
 #iter = 60, maxdepth= 6, nu = 0.07
 
+#just firstorder+circularity: iter = 50, maxdepth=4, nu=0.08
+ss = sample(700,replace=F)
 ada.pred = rep(0,700)
 for (i in seq(1,700,by=70)) {
-  ada.cv = ada(truth[-ss[i:(i+69)]] ~ ., data = all.features.scaled[-ss[i:(i+69)],c(1:13,68)], loss = "e", type = "discrete",iter=60,nu=0.07,rpart.control(maxdepth=6))
-  ada.pred[ss[i:(i+69)]] = predict(ada.cv, newdata = all.features.scaled[ss[i:(i+69)],c(1:13,68)])
+  ada.cv = ada(truth[-ss[i:(i+69)]] ~ ., data = all.features.scaled[-ss[i:(i+69)],c(1:13,32)], loss = "e", type = "discrete",rpart.control(maxdepth = 4),nu=0.08,iter=50)
+  ada.pred[ss[i:(i+69)]] = predict(ada.cv, newdata = all.features.scaled[ss[i:(i+69)],c(1:13,32)])
 }
 ada.table = table(truth, ada.pred)
 
