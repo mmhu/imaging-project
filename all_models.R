@@ -31,7 +31,7 @@ asym <- asym[,2] %>% as_vector
 truth <- read.csv("training_set_truth.csv", header = FALSE)
 truth$V3 = as.factor(truth$V3)
 truth = truth$V3
-all.features <- cbind(firstorder, features, colors, circ, asym)
+all.features <- cbind(firstorder, colors, circ)
 all.features.scaled <- scale(all.features, center=TRUE, scale=TRUE)
 all.features.scaled = as.data.frame(all.features.scaled)
 
@@ -270,16 +270,13 @@ avg_accuracies <- (ada.predictions@tp[[1]]/135 + ada.predictions@tn[[1]]/565) / 
 threshold <- ada.predictions@cutoffs[[1]][which.max(avg_accuracies)]
 
 ###RandomForest Curve###
-rf.cv <- randomForest(x= all.features, y=truth,tree = 4, mtry = 54, sampsize = 630, maxnodes = 20, classwt=(c("benign" = 0.2, "malignant" = 0.8)))
-rf.pred = predict(rf.cv, newdata = all.features,type="prob")
-
+ss <- sample(700,replace=F)
 
 rf.pred <- matrix(data=NA,nrow=700,ncol=2)
 for (i in seq(1,700,by=70)) {
-  rf.cv <- randomForest(as.factor(truth[-ss[i:(i+69)]]) ~ ., data = all.features[-ss[i:(i+69)],], ntree = 4, mtry = 54, sampsize = 630, maxnodes = 20, classwt=(c("benign" = 0.2, "malignant" = 0.8)))
+  rf.cv <- randomForest(as.factor(truth[-ss[i:(i+69)]]) ~ ., data = all.features[-ss[i:(i+69)],], ntree = 4, mtry = 18, sampsize = 630, maxnodes = 20, classwt=(c("benign" = 0.2, "malignant" = 0.8)))
   rf.pred[ss[i:(i+69)],] = predict(rf.cv, newdata = all.features[ss[i:(i+69)],],type="prob")
 }
-rf.table = table(truth, rf.pred)
 
 rf.predictions <- prediction(rf.pred[,2],labels=truth)
 
@@ -306,13 +303,11 @@ plot(svm.perf,main="ROC Curve for SVM",col=2,lwd=2)
 abline(a=0,b=1,lwd=2,lty=2,col="gray")
 
 ## neural network ROC ##
-
+ss <- sample(700,replace=F)
 nnet.pred <- rep(0,700)
 for (i in seq(1,700,by=70)) {
-  #mxn.cv = mx.mlp(all.features.scaled[-ss[i:(i+69)],], truth.mxn[-ss[i:(i+69)]], hidden_node = 10, out_node = 2, out_activation = "softmax", learning.rate = 0.1, eval.metric = mx.metric.accuracy)
-  #mxn.pred[ss[i:(i+69)]] = predict(mxn.cv, newdata = all.features.scaled[ss[i:(i+69)],])
-  nnet.cv <- nnet(truth[-ss[i:(i+69)]] ~ ., data = all.features[-ss[i:(i+69)],], size = 5, decay = 1.0e-5, maxit = 1000, trace=FALSE)
-  nnet.pred[ss[i:(i+69)]] = predict(nnet.cv, newdata = all.features[ss[i:(i+69)],], type = "raw")
+  nnet.cv <- nnet(truth[-ss[i:(i+69)]] ~ ., data = all.features.scaled[-ss[i:(i+69)],], size = 5, decay = 1.0e-5, maxit = 1000, trace=FALSE)
+  nnet.pred[ss[i:(i+69)]] = predict(nnet.cv, newdata = all.features.scaled[ss[i:(i+69)],], type = "raw")
 }
 
 nn.predictions = prediction(nnet.pred,truth)
