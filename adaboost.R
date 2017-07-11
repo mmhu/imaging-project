@@ -1,7 +1,79 @@
-library(tidyverse)
-library(caret)
+library(knitr)
+opts_chunk$set(cache = TRUE)
+opts_knit$set(root.dir = "C:/Users/bensadis/Desktop/BDSI/imaging-project")
+library(devtools)
+library(ggbiplot)
 library(ada)
-setwd("/Users/catscomputer/Documents/Mine New/bdsi/imaging/imaging_git")
+library(tidyverse)
+
+features <- read.csv("features.csv", header = TRUE)
+features <- features[, -8] # get rid of glcm_correlation with all 1 values
+firstorder <- read.csv("firstorder.csv", header = TRUE)
+colors <- read.csv("colors.csv", header = TRUE)
+colors <- colors[, 2:13]
+circ <- read.csv("circularity.csv", header = TRUE) %>% as_vector
+asym <- read.csv("asym.csv", header = TRUE)
+asym <- asym[,2] %>% as_vector
+truth <- read.csv("training_set_truth.csv", header = FALSE)
+truth$V3 = as.factor(truth$V3)
+truth = truth$V3
+all.features <- cbind(firstorder, colors, circ, asym)
+all.features.scaled <- scale(all.features, center=TRUE, scale=TRUE)
+all.features.scaled = as.data.frame(all.features.scaled)
+
+ada.predictions <- rep(0, 700)
+ada.predictions = factor(x = ada.predictions, levels = c(0,1), labels = c("benign", "malignant"))
+ada.pred.prob <- matrix(data=0,nrow=700,ncol=2)
+
+num_rounds <- 10
+
+for (r in 1:num_rounds) {
+  print(r)
+  ss <- sample(700,replace=F)
+  for (i in seq(1,700,by=70)) {
+    ada.cv <- ada(truth[-ss[i:(i+69)]] ~ ., data = all.features[-ss[i:(i+69)],], loss = "e", type = "discrete", iter=50, nu=0.08, rpart.control(maxdepth = 4))
+    ada.pred.prob[ss[i:(i+69)],] = ada.pred.prob[ss[i:(i+69)],] + predict(ada.cv, newdata = all.features[ss[i:(i+69)],],type="prob")
+  }
+}
+ada.pred.prob <- ada.pred.prob / num_rounds
+
+for (i in 1:700) {
+  if (ada.pred.prob[[i,2]] > 0.14) {
+    ada.predictions[[i]] = "malignant"
+  }
+  else {
+    ada.predictions[[i]] = "benign"
+  }
+}
+tb <- table(truth, ada.predictions)
+tb
+sens <- tb[2,2] / (tb[2,2] + tb[2,1])
+spec <- tb[1,1] / (tb[1,1] + tb[1,2])
+acc <- (sens + spec) / 2
+sens
+spec
+acc
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+###### previous ######
+
 features <- read.csv("features.csv", header = TRUE)
 View(features)
 features <- features[, -8] # get rid of glcm_correlation with all 1 values
